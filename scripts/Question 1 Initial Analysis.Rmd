@@ -1,0 +1,146 @@
+---
+title: "Question 1 Initial Analysis"
+---
+
+This work is currently in an RMD file so I can add notes along with the code. 
+
+```{r Load in Packages and Data}
+library(tidyverse)
+library(knitr)
+interest <- read_csv("data/interest-clean.csv")
+```
+Question of interest: Is there a relation between people's domains of interest (like biology, technology, AI, etc.) and the areas of data science that they prefer?
+
+# 8 Domains of Interest + Other 
+- Environmental Science
+- Social or Political Science
+- Ecology
+- Biology
+- Public health
+- Neuroscience
+- Technology
+- Software Development
+- Other
+
+# 11 Areas of Data Science + Other
+- Analysis or classification of images
+- Deep learning and neural networks
+- Spatial statistics or time series analysis 
+- Data acquisition and engineering
+- Natural language processing and analysis of text
+- Model deployment and software or web integrations
+- Data visualization and interactive dashboards
+- Predictive modeling, generally
+- Statistical models and inference, generally
+- Databases
+- Algorithms
+- Other
+
+```{r}
+# Function to help classify whether a certain domain was selected. 
+# Currently does not handle written-in values for the "Other" option
+
+add_domains <- function(data){
+  data %>% mutate(envi_sci = grepl("Environmental Science", domains, ignore.case = T),
+                  soc_poli_sci = grepl("Social or Political Science", domains, ignore.case = T),
+                  ecology = grepl("Ecology", domains, ignore.case = T),
+                  biology = grepl("Biology", domains, ignore.case = T),
+                  health = grepl("Public health", domains, ignore.case = T),
+                  neurosci = grepl("Neuroscience", domains, ignore.case = T),
+                  tech = grepl("Technology", domains, ignore.case = T),
+                  software_dev = grepl("Software Development", domains, ignore.case = T)
+                  )
+}
+
+add_areas <- function(data){
+  data %>% mutate(image_analysis = grepl("Analysis or classification of images", areas, ignore.case = T),
+                  neural_networks = grepl("Deep learning and neural networks", areas, ignore.case = T),
+                  time_series = grepl("Spatial statistics or time series analysis", areas, ignore.case = T),
+                  data_engineering = grepl("Data acquisition and engineering", areas, ignore.case = T),
+                  text_analysis = grepl("Natural language processing and analysis of text", areas, ignore.case = T),
+                  software_integration = grepl("Model deployment and software or web integrations", areas, ignore.case = T),
+                  data_visualization = grepl("Data visualization and interactive dashboards", areas, ignore.case = T),
+                  predictive_modeling = grepl("Predictive modeling, generally", areas, ignore.case = T),
+                  statistical_modeling = grepl("Statistical models and inference, generally", areas, ignore.case = T),
+                  databases = grepl("Databases", areas, ignore.case = T),
+                  algorithms = grepl("Algorithms", areas, ignore.case = T)
+                  )
+}
+
+# Clean up the data. Add a column for each area/domain.
+interest <- interest %>% add_domains() %>% add_areas() %>% select(-c("type", "language"))
+```
+
+```{r Aggregating Results}
+# Quick look at the proportion of respondents selecting each domain or each data science area. 
+domains_of_interest <- interest %>% select(envi_sci:software_dev) %>% colSums() %>% as.data.frame() %>% rownames_to_column() 
+colnames(domains_of_interest) <- c("domain", "count")
+domains_of_interest <- domains_of_interest %>% mutate(prop = count / 49)
+
+areas_of_interest <- interest %>% select(image_analysis:algorithms) %>% colSums() %>% as.data.frame() %>% rownames_to_column() 
+colnames(areas_of_interest) <- c("area", "count")
+areas_of_interest <- areas_of_interest %>% mutate(prop = count / 49)
+```
+
+
+
+```{r Preliminary Plots}
+# Proportion of Respondents that chose a domain
+ggplot(domains_of_interest , aes(x = domain, y = prop)) + 
+  geom_col() + 
+  coord_cartesian(ylim = c(0,1)) +
+  labs(x = "Domain", y = "Proportion", title = "Proportion of Respondents Specifying a Domain is of Interest to Them")
+
+# Proportion of Respondents that chose an area of data science
+# X-Axis with Data Science Area names are hard to read because they overlap.
+ggplot(areas_of_interest , aes(x = area, y = prop)) + 
+  geom_col() + 
+  coord_cartesian(ylim = c(0,1)) +
+  labs(x = "Area", y = "Proportion", title = "Proportion of Respondents Specifying an Area of Data Science is of Interest to Them")
+
+areas_of_interest %>% arrange(prop %>% desc())
+```
+
+```{r Creating a 2 way frequency table}
+# Creates a frequency table showing all the paired selections between domains and areas
+# Note the count table margins add up to big numbers since students can select multiple areas and multiple domains. That is, a single student can be represented multiple times.
+all_domains <- interest %>% select("envi_sci":"software_dev") %>% colnames()
+all_areas <- interest %>% select("image_analysis":"algorithms") %>% colnames()
+domain_area_count_table <- matrix(nrow = 8, ncol = 11)
+colnames(domain_area_count_table) <- all_areas
+rownames(domain_area_count_table) <- all_domains
+
+for(domain in all_domains){
+  counts = interest %>% filter(.data[[domain]] == T) %>% select(any_of(all_areas)) %>% colSums()
+  domain_area_count_table[match(domain, all_domains),] <- counts
+}
+domain_area_count_table <- domain_area_count_table %>% addmargins()
+```
+
+
+```{r Creating a 2 way proportion table}
+# Same thing, but with a proportion table. The proportions are calculated with the denominator being the number of people who selected the domain.
+# For example: 5 people selected ecology. Then each proportion in the ecology column is calculated with the number of people who selected the area divided by 5.
+domain_area_prop_table <- matrix(nrow = 8, ncol = 11)
+colnames(domain_area_prop_table) <- all_areas
+rownames(domain_area_prop_table) <- all_domains
+
+for(domain in all_domains){
+  counts = interest %>% filter(.data[[domain]] == T) %>% select(any_of(all_areas)) %>% colMeans()
+  domain_area_prop_table[match(domain, all_domains),] <- counts
+}
+
+long_prop_table <- domain_area_prop_table %>% as.table() %>% as.data.frame()
+colnames(long_prop_table) <- c("Domain", "Area", "Frequency")
+ggplot(long_prop_table, aes(x = Domain, y = Area, fill = Frequency)) + geom_tile() + geom_text(aes(label = round(Frequency, 2)), col = "white") + ggtitle("Proportion of Each Area Selected Within Each Domain")
+```
+If there is no relation between a person's domain of interest and the areas of data science they are interested in, we would expect each row to be the same color.
+
+
+# Quick Summary of Work
+- Loaded in data and modified data to represent with many columns where each column represents whether the respondent marked that they were interested in that domain or data science area.
+- Currently not handling write-in data through "Other" since I'm not sure the best way to handle this. 
+- Created a frequency table of how many respondents marked an interest in a certain domain/subject combination. This is saved in the variable `domain_area_count_table`
+- Realizing that 1 person doesn't necessarily equal 1 response, counts become not very comparable between domains since the number of people who chose each domain isn't equal. Hence, proportions seem better.
+- Created a heatmap of the domain/area combinations.
+- Note that chi-square tests probably won't work since each respondent technically can fall into multiple categories (see how the sum of the counts table adds up to 1396, and not 49 for the 49 responses)
