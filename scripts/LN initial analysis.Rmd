@@ -1,0 +1,125 @@
+---
+title: "LN initial analysis"
+---
+
+```{r}
+library(tidyverse)
+
+background  <- read_csv("../data/background-clean.csv")
+interest <- read_csv("../data/interest-clean.csv")
+
+# Same helper as Question 1. One TRUE/FALSE column per data science area.
+add_areas <- function(data){
+  data %>% mutate(image_analysis = grepl("Analysis or classification of images", areas, ignore.case = T),
+                  neural_networks = grepl("Deep learning and neural networks", areas, ignore.case = T),
+                  time_series = grepl("Spatial statistics or time series analysis", areas, ignore.case = T),
+                  data_engineering = grepl("Data acquisition and engineering", areas, ignore.case = T),
+                  text_analysis = grepl("Natural language processing and analysis of text", areas, ignore.case = T),
+                  software_integration = grepl("Model deployment and software or web integrations", areas, ignore.case = T),
+                  data_visualization = grepl("Data visualization and interactive dashboards", areas, ignore.case = T),
+                  predictive_modeling = grepl("Predictive modeling, generally", areas, ignore.case = T),
+                  statistical_modeling = grepl("Statistical models and inference, generally", areas, ignore.case = T),
+                  databases = grepl("Databases", areas, ignore.case = T),
+                  algorithms = grepl("Algorithms", areas, ignore.case = T)
+                  )
+}
+
+interest <- interest %>% add_areas() %>% select(-c("type", "language", "domains", "areas"))
+```
+
+```{r}
+# Counts how many classes each respondent took in each subject category.
+add_class_groups <- function(data){
+  data %>% mutate(prereq_core = str_count(courses, "PSTAT 120|PSTAT 122|PSTAT 126"),
+                  intro_ds = str_count(courses, "PSTAT 100"),
+                  programming = str_count(courses, "CS 5|CS 9|CS 16|CS 130"),
+                  adv_stat_ml = str_count(courses, "PSTAT 115|PSTAT 127|PSTAT 131|PSTAT 134"),
+                  time_series_stoch = str_count(courses, "PSTAT 160|PSTAT 174|PSTAT 175"),
+                  other_dept = str_count(courses, "LING 104|LING 110|GEOG 186")
+                  )
+}
+
+background <- background %>% add_class_groups()
+
+# Sanity check: the categories should account for every class listed (no class left ungrouped)
+stopifnot(all(rowSums(background %>% select(prereq_core:other_dept)) == str_count(background$courses, ",") + 1))
+
+# Everyone took at least one core class, so prereq_core can't be tested as yes/no
+background %>% summarise(across(prereq_core:other_dept, ~ sum(.x > 0)))
+```
+
+```{r}
+# Only 49 respondents did both surveys (inner_join drops response_ids 1038 and 1046)
+q2_data <- background %>% select(response_id, prereq_core:other_dept) %>% inner_join(interest, by = "response_id")
+nrow(q2_data)
+
+all_classes <- c("intro_ds", "programming", "adv_stat_ml", "time_series_stoch", "other_dept")
+all_areas <- interest %>% select("image_analysis":"algorithms") %>% colnames()
+
+# How many respondents took at least one class in each category (the denominators below)
+n_takers <- sapply(all_classes, function(class) sum(q2_data[[class]] > 0))
+n_takers
+```
+
+```{r}
+# Proportion of takers of a class category who are interested in each area.
+# Denominator = number of people who took a class in the category.
+class_area_prop_table <- matrix(nrow = 5, ncol = 11)
+colnames(class_area_prop_table) <- all_areas
+rownames(class_area_prop_table) <- all_classes
+
+for(class in all_classes){
+  props = q2_data %>% filter(.data[[class]] > 0) %>% select(any_of(all_areas)) %>% colMeans()
+  class_area_prop_table[match(class, all_classes),] <- props
+}
+round(class_area_prop_table, 2)
+
+long_prop_table <- class_area_prop_table %>% as.table() %>% as.data.frame()
+colnames(long_prop_table) <- c("Class", "Area", "Frequency")
+ggplot(long_prop_table, aes(x = Class, y = Area, fill = Frequency)) + geom_tile() + geom_text(aes(label = round(Frequency, 2)), col = "white") + ggtitle("Proportion of Each Area Selected Within Each Class Category")
+```
+
+```{r}
+# For each class/area pair, make a 2x2 table (took the class or not x interested in the area or not).
+# Fisher's exact test instead of chi-square since many cells are small.
+fisher_p <- matrix(nrow = 5, ncol = 11)
+colnames(fisher_p) <- all_areas
+rownames(fisher_p) <- all_classes
+
+for(class in all_classes){
+  for(area in all_areas){
+    tab <- table(factor(q2_data[[class]] > 0, levels = c(FALSE, TRUE)),
+                 factor(q2_data[[area]], levels = c(FALSE, TRUE)))
+    fisher_p[class, area] <- fisher.test(tab)$p.value
+  }
+}
+
+# Pairs with p < 0.05, and how many we'd expect by chance out of 55 tests
+fisher_long <- fisher_p %>% as.table() %>% as.data.frame()
+colnames(fisher_long) <- c("Class", "Area", "p_value")
+fisher_long %>% filter(p_value < 0.05) %>% arrange(p_value)
+nrow(fisher_long) * 0.05
+
+# Adjust for the 55 tests (Benjamini-Hochberg)
+fisher_long <- fisher_long %>% mutate(p_adjusted = p.adjust(p_value, method = "BH"))
+min(fisher_long$p_adjusted)
+```
+
+```{r}
+q2_data %>% group_by(took_time_series_stoch = time_series_stoch > 0) %>% summarise(n = n(), data_engineering = mean(data_engineering), databases = mean(databases))
+q2_data %>% group_by(took_intro_ds = intro_ds > 0) %>% summarise(n = n(), data_visualization = mean(data_visualization), data_engineering = mean(data_engineering))
+```
+
+
+Some notes:
+
+- Interest is high across the board: predictive modeling is about 0.83–0.89 in every category and neural networks about 0.72–0.88 (except other_dept). That leaves little room for differences between groups.
+
+- Two pairs have p < 0.05, both for time series/stochastic classes:
+  - Takers were much more interested in data engineering (0.72 vs 0.23 for the 13 non-takers, p = 0.003).
+  - Takers were less interested in databases (0.50 vs 0.85, p = 0.047).
+  - PSTAT 100 takers leaned toward data visualization (0.81 vs 0.57) and away from data engineering (0.46 vs 0.74), but that is only suggestive (p = 0.08).
+  
+- After Benjamini-Hochberg adjustment the smallest p-value is 0.17, so nothing is significant...
+
+- The sample is small and very uniform (nearly all SDS seniors who took the same core classes), so there is little power to detect anything but large differences. Some non-taker groups are only 13 to 23 people
