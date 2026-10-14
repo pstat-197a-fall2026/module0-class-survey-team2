@@ -114,7 +114,7 @@ for(domain in all_domains){
   counts = interest %>% filter(.data[[domain]] == T) %>% select(any_of(all_areas)) %>% colSums()
   domain_area_count_table[match(domain, all_domains),] <- counts
 }
-domain_area_count_table <- domain_area_count_table %>% addmargins()
+domain_area_count_table %>% as.data.frame()
 ```
 
 
@@ -131,13 +131,62 @@ for(domain in all_domains){
 }
 
 long_prop_table <- domain_area_prop_table %>% as.table() %>% as.data.frame()
-colnames(long_prop_table) <- c("Domain", "Area", "Frequency")
-ggplot(long_prop_table, aes(x = Domain, y = Area, fill = Frequency)) + geom_tile() + geom_text(aes(label = round(Frequency, 2)), col = "white") + ggtitle("Proportion of Each Area Selected Within Each Domain")
+colnames(long_prop_table) <- c("Domain", "Area", "Proportion")
+long_prop_table$Domain <-  factor(long_prop_table$Domain, levels = domains_of_interest %>% arrange(count) %>% pull(domain))
+long_prop_table$Area <- factor(long_prop_table$Area, levels = areas_of_interest %>% arrange(count) %>% pull(area))
+
+ggplot(long_prop_table, aes(x = Domain, y = Area, fill = Proportion)) + geom_tile() + geom_text(aes(label = round(Proportion, 2)), col = "white") + labs(title = "Proportion of Each Data Science Area Selected Stratified by Domain", subtitle = "Selection frequency increases left to right, bottom to top")
 ```
-If there is no relation between a person's domain of interest and the areas of data science they are interested in, we would expect each row to be the same color.
+If there is no relation between a person's domain of interest and the areas of data science they are interested in, we would expect each column to look about the same.
 
+```{r}
+# What might be more useful is if you compare proportions as a deviation from the average.
+prop_deviations <- inner_join(long_prop_table %>% rename(area = Area), areas_of_interest, by = "area") %>% transmute(Domain, area, prop_dev = Proportion - prop)
+prop_deviations$Domain <- factor(prop_deviations$Domain, levels = domains_of_interest %>% arrange(count) %>% pull(domain))
+prop_deviations$area <- factor(prop_deviations$area, levels = areas_of_interest %>% arrange(count) %>% pull(area))
 
-# Quick Summary of Work
+ggplot(prop_deviations, aes(x = Domain, y = area, fill = prop_dev)) + 
+  geom_tile() + geom_text(aes(label = round(prop_dev, 2)), col = "white") + labs(title = "Proportion Deviation Stratified by Domain",  subtitle = "Selection frequency increases left to right, bottom to top")
+domains_of_interest %>% arrange(count)
+```
+One issue with interpreting this heatmap is that the proportion of people choosing each domain varies. Specifically for tech, 45/49 people chose that as a domain of interest, so the deviation from the overall survey data won't be significant since the tech strata already contains most of the data. This is more useful for the other domains where they make up 40-53% of the results. (Software dev makes up 69%). Ecology has a very small group of 5 people only, so its values may be extra big because each response would swing a proportion by 20%.
+
+# Useful Plots and Tables:
+```{r}
+# Bar plot for interest in a domain
+ggplot(domains_of_interest , aes(x = domain, y = prop)) + 
+  geom_col() + 
+  coord_cartesian(ylim = c(0,1)) +
+  labs(x = "Domain", y = "Proportion", title = "Proportion of Respondents Specifying a Domain is of Interest to Them")
+
+domains_of_interest # Frequencies and proportions of each domain
+
+# Bar plot for interest in a data science area (labels are overlapping, so not very helpful)
+ggplot(areas_of_interest , aes(x = area, y = prop)) + 
+  geom_col() + 
+  coord_cartesian(ylim = c(0,1)) +
+  labs(x = "Area", y = "Proportion", title = "Proportion of Respondents Specifying an Area of Data Science is of Interest to Them")
+
+areas_of_interest # Frequencies and proportions of each area
+
+domain_area_count_table %>% as.data.frame() # contingency table of domains and data science areas
+
+# Two-way proportion table stratified by domain
+ggplot(long_prop_table, aes(x = Domain, y = Area, fill = Proportion)) + geom_tile() + geom_text(aes(label = round(Proportion, 2)), col = "white") + labs(title = "Proportion of Each Data Science Area Selected Stratified by Domain", subtitle = "Selection frequency increases left to right, bottom to top")
+
+# Two-way proportion deviation table stratified by domain. Each value is the domain-stratified proportion's deviation from the overall survey data proportion. 
+ggplot(prop_deviations, aes(x = Domain, y = area, fill = prop_dev)) + 
+  geom_tile() + geom_text(aes(label = round(prop_dev, 2)), col = "white") + labs(title = "Proportion Deviation Stratified by Domain",  subtitle = "Selection frequency increases left to right, bottom to top")
+``` 
+
+# Takeaways
+- I'm looking at the "Proportion Deviation Stratified by Domain" heatmap. Ignoring tech (because it makes up 90% of responses) and ecology (because it makes up 10% of responses and is too volatile), it's interesting to see that people who selected biology didn't select predictive or statistical modeling as much. I don't have much of an explanation for that. On the other hand, people who chose soc/poli sci and health did seem to select predictive and statistical modeling at a higher rate than average. Those fields I can see models being very useful, such as with elections or with predicting chances of diseases. Looking at the neural network row, it seems as though people who chose biology, neuroscience and software development are interested in neural networks slightly more than average. It is possible that those fields are better-suited to utilize neural networks. Looking at the image analysis row, it seems that biology and neuroscience selectors also are interested in image analysis AND text analysis. This (to me) is plausible since I can see those fields utilizing image recognition for stuff like cells or human bodies more often than not. Text analysis too since stuff those fields may have a lot of text data that needs to be converted. 
+
+# Extra Ideas:
+- Could use the same logic of the proportion deviation, but instead, compare all the responses that selected the domain compared to all the responses that DIDN'T select that same domain. Then you can have 2 groups that you can compare against. 
+- Could try to create like a logistic regression model to predict whether a person marked a data science area as interesting to them using the domains as an input. Have one logistic regression model for each individual data science area
+
+# Quick Summary of Work (10/13)
 - Loaded in data and modified data to represent with many columns where each column represents whether the respondent marked that they were interested in that domain or data science area.
 - Currently not handling write-in data through "Other" since I'm not sure the best way to handle this. 
 - Created a frequency table of how many respondents marked an interest in a certain domain/subject combination. This is saved in the variable `domain_area_count_table`
