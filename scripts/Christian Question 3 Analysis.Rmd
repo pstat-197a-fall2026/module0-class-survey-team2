@@ -1,0 +1,94 @@
+---
+title: "Christian Question 3 Analysis"
+output: html_document
+---
+
+Question:
+Do those who took course X report different comfort levels than those who did not take the course?
+(this is question 3)
+
+Cleaning Data
+```{r}
+library(tidyverse)
+
+bg_clean <- read_csv("C:/Users/csola/OneDrive/Desktop/Pstat 197 (Capstone)/Class Survey/module0-class-survey/data/background-clean.csv")
+
+# separate_rows() function worked better than pivot_longer()
+# here, sep = ", " separates by every comma and space
+bg_clean_long <- separate_rows(bg_clean, courses, sep = ", ")
+
+bg_clean_long_info <- select(bg_clean_long, response_id, courses, prog.comf, math.comf, stat.comf)
+#bg_clean_long_info
+
+#head(bg_clean_long, 25)
+```
+
+
+
+Plot of number of students who took each course:
+(similar to Tidyverse basics section material)
+[This was to just have it here for reference]
+```{r}
+course_count <- count(bg_clean_long, courses, name = "n")
+
+ggplot(data = course_count, aes(x = n, y = reorder(courses, n))) +
+  geom_point() +
+  scale_x_continuous(breaks = seq(0, 50, by = 2)) +
+  labs(x = "Number of people who took the course")
+```
+
+
+
+Dot Plot of mean(prog, math, stats):
+```{r}
+#library(ggplot2)
+
+course_means <- bg_clean_long %>%
+  group_by(courses) %>% # need to group by courses to get the mean comfort for each course
+  summarise(
+    mean_prog = mean(prog.comf),
+    mean_math = mean(math.comf),
+    mean_stat = mean(stat.comf),
+    count = n() # this is counting the number of responses for each course but plot doesn't need
+    )
+#course_means
+
+# pivot_longer moves column names to and means to rows, and name the new column names
+plot_data <- course_means %>%
+  pivot_longer( 
+    cols = c(mean_prog, mean_math, mean_stat),
+    names_to = "subject",
+    values_to = "mean_comf"
+    )
+# plot_data
+
+ggplot(plot_data, aes(x = mean_comf, y = courses, color = subject)) +
+  geom_point(size = 3, position = position_dodge(width = 0.7)) +
+  labs(x = "Mean comfort", y = NULL, color = "Subject") 
+# position = ... green is slightly lower, red is also slightly lower, and blue is slightly higher in their positions to avoid complete overlapping.
+```
+ 
+ 
+ # Below is a work in progress #
+
+lm():
+```{r}
+# to use lm() I need to create a variable for those who 
+```
+
+Interpretation of this plot:
+# need to finish tomorrow morning
+
+
+
+
+
+
+
+
+
+
+
+
+
+
