@@ -1,0 +1,84 @@
+---
+title: "Data Manipulation"
+author: "Kendrick Lam"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+interest <- read_csv("data/interest-clean.csv")
+background <- read_csv("data/background-clean.csv")
+```
+```{r Helper Functions}
+# Obtain all unique areas of data science, domain interests, and classes 
+areas_reported <- complete_data$areas %>% str_split(., ",") %>% unlist() %>% str_trim() %>% unique()
+areas_reported <- areas_reported[c(1:4, 6:12)] # remove "generally" as an area
+
+# There were 7 unique self-reported domains of interest: AI, Financial Markets, Quantitative Finance, Economics, Defense, Sports/Economics/Finance, Music. 
+# All of them had 1 response (except Economics which had 2). Since those groups are too small, I ignore them in that I don't give them their own group.
+domains_reported <- complete_data$domains %>% str_split(., ",") %>% unlist() %>% str_trim() %>% unique()
+courses <- complete_data$courses %>% str_split(., ",") %>% unlist() %>% str_trim() %>% unique()
+
+# Creates flag variables for whether the respondent marked an area of data science as of interest to them
+add_areas <- function(data){
+  data %>% mutate(image_analysis = grepl("Analysis or classification of images", areas, ignore.case = T),
+                  neural_networks = grepl("Deep learning and neural networks", areas, ignore.case = T),
+                  time_series = grepl("Spatial statistics or time series analysis", areas, ignore.case = T),
+                  data_engineering = grepl("Data acquisition and engineering", areas, ignore.case = T),
+                  text_analysis = grepl("Natural language processing and analysis of text", areas, ignore.case = T),
+                  software_integration = grepl("Model deployment and software or web integrations", areas, ignore.case = T),
+                  data_visualization = grepl("Data visualization and interactive dashboards", areas, ignore.case = T),
+                  predictive_modeling = grepl("Predictive modeling, generally", areas, ignore.case = T),
+                  statistical_modeling = grepl("Statistical models and inference, generally", areas, ignore.case = T),
+                  databases = grepl("Databases", areas, ignore.case = T),
+                  algorithms = grepl("Algorithms", areas, ignore.case = T)
+                  )
+}
+
+# Creates flag variables for whether the respondent marked an area of data science as of interest to them
+add_domains <- function(data){
+  data %>% mutate(envi_sci = grepl("Environmental Science", domains, ignore.case = T),
+                  soc_poli_sci = grepl("Social or Political Science", domains, ignore.case = T),
+                  ecology = grepl("Ecology", domains, ignore.case = T),
+                  biology = grepl("Biology", domains, ignore.case = T),
+                  health = grepl("Public health", domains, ignore.case = T),
+                  neurosci = grepl("Neuroscience", domains, ignore.case = T),
+                  tech = grepl("Technology", domains, ignore.case = T),
+                  software_dev = grepl("Software Development", domains, ignore.case = T)
+                  )
+}
+
+# Counts how many classes each respondent took in each subject category.
+add_class_groups <- function(data){
+  data %>% mutate(prereq_core = str_count(courses, "PSTAT 120|PSTAT 122|PSTAT 126"),
+                  intro_ds = str_count(courses, "PSTAT 100"),
+                  programming = str_count(courses, "CS 5|CS 9|CS 16|CS 130"),
+                  adv_stat_ml = str_count(courses, "PSTAT 115|PSTAT 127|PSTAT 131|PSTAT 134"),
+                  time_series_stoch = str_count(courses, "PSTAT 160|PSTAT 174|PSTAT 175"),
+                  other_dept = str_count(courses, "LING 104|LING 110|GEOG 186")
+                  )
+}
+
+# Create flag variables for whether each class was taken or not by a respondent
+add_course_taken <- function(data){
+  for(course in courses){
+    data = data %>% mutate(!!course := grepl(course, courses, ignore.case = T))
+  }
+  return(data)
+}
+```
+
+
+```{r Complete Dataset}
+complete_data <- inner_join(background, interest, by = "response_id") %>% select(response_id, prog.comf, math.comf, stat.comf, courses, domains, areas)
+complete_data <- complete_data %>% add_areas %>% add_domains() %>% add_course_taken() %>% add_class_groups() %>% select(-c(areas, courses, domains))
+write_csv(complete_data, "complete_data.csv")
+```
+
+
+
+
+
