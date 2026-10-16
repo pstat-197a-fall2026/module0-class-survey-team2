@@ -1,7 +1,12 @@
 ---
-title: "Analysis of class surveys"
-subtitle: "If you want a subtitle put it here"
-author: "List names here"
+title: "Analysis of Class Surveys"
+subtitle: "Team 2"
+author: 
+  - Alison Gu
+  - Christian Solares
+  - Daniel Nickolov
+  - Kendrick Lam
+  - Lily Nishizawa
 date: last-modified
 published-title: "Updated"
 editor: visual
@@ -14,8 +19,6 @@ execute:
   cache: true
 ---
 
-Use this as a template. Keep the headers and remove all other text. Overall, your report may be quite short. When it is complete, render and then push changes to your team repository.
-
 ```{r}
 # load any other packages and read data here
 library(tidyverse)
@@ -23,22 +26,22 @@ library(tidyverse)
 
 ## Executive summary
 
-In this module, we created heatmaps to visualize patterns in interest across areas of data science by domains of interest, and found many interesting results, such as, that those interested in neuroscience were more interested in image analysis compared to those not interested in neuroscience and similar for those interested in health/biology compared to those not interested in health/biology. Next, we created a heatmap to visualize patterns in interest across areas of data science by classes taken and conducted Fisher's exact test for each class/area pair. While interests were high across all data science areas, none of the differences between class-taken and non-taken groups remained statistically significant after Benjamini-Hochberg adjustment. Finally, we created a dot plot to see general comfort with math/statistics/programming across different classes taken and performed a linear regression for each class. We found that certain classes were more meaningful to analyze over others, but overall, courses had no clear association with comfort in math, statistics, nor programming.
+In this module, we created heatmaps to visualize patterns in interest across areas of data science by domains of interest. We found many interesting results such as, that those interested in neuroscience, biology and health were more interested in image analysis compared to those not interested in those fields. Next, we created a heatmap to visualize patterns in interest across areas of data science by classes taken and conducted Fisher's exact test for each class/area pair. While interests were high across all data science areas, none of the differences between class-taken and non-taken groups remained statistically significant after Benjamini-Hochberg adjustment. Finally, we created dot plots to see general comfort with math/statistics/programming across different classes taken and performed a linear regression for each class. We found that certain classes were more meaningful to analyze over others, but overall, courses had no clear association with comfort in math, statistics, nor programming.
 
 ## Data description
 
 Our dataset was obtained as an intake form given to all students in the Data Science Capstone course for the 2026-2027 year.
 
-Questions included demographic information such as major, class standing, gender identity, and race, and skills and experience information including self-perceived proficiency and comfort level with math, statistics, and programming, and major classes taken so far. The data for these questions can be found in "background_clean.csv".
+Questions included demographic information such as major, class standing, gender identity, and race, and skills and experience information including self-perceived proficiency and comfort level with math, statistics, and programming, and major classes taken so far. The data for these questions can be found in `background_clean.csv`.
 
-Finally, project preferences questions included industry or research project preference, programming language preference, domain interests (environmental science, biology, technology, etc.), and area of data science interests (image analysis, time series, predictive modeling, databases, etc.). The data for these questions can be found in "interests_clean.csv".
+Finally, project preferences questions included industry or research project preference, programming language preference, domain interests (environmental science, biology, technology, etc.), and area of data science interests (image analysis, time series, predictive modeling, databases, etc.). The data for these questions can be found in `interests_clean.csv`.
 
 ## Questions of interest
 
 > We sought to investigate the relationship between domains of interest, areas of data science preferences, courses, and self-assessed comfort level with technical skills among PSTAT197A students. Our analysis addressed three questions:
 >
-> 1.  Does domains of interest (biology, technology, AI, etc.) predict preferences for certain areas of data science?
-> 2.  Does previous classwork people have taken have a relation to preferences for certain areas of data science?
+> 1.  Do domains of interest (biology, technology, AI, etc.) have any relations with preferences for certain areas of data science?
+> 2.  Does previous classwork  have a relation to preferences for certain areas of data science?
 > 3.  Does corresponding classwork increase comfort with math/statistics/programming?
 
 ## Findings
@@ -51,32 +54,31 @@ interest <- read_csv("../data/interest-clean.csv")
 ```
 
 ### Question 1:
+Do domains of interest (biology, technology, AI, etc.) have any relations with preferences for certain areas of data science?
 
-Does domains of interest (biology, technology, AI, etc.) predict preferences for certain areas of data science?
+![Bar Graph of the Proportion of Respondents who had a preference for each of the domains](images/clipboard-3324050668.png){width="425"}
 
-![](images/clipboard-3324050668.png){width="425"}
+![Table of the Proportion of Respondents who had a interest in each of the areas of data science](images/Screenshot 2026-10-16 161521.png){width="425"}
 
-Bar Graph of the Proportion of Respondents who had a preference for each of the domains.
 
-![](images/clipboard-4068072138.png){width="420"}
+![The following heatmap splits each domain into 2 groups: those who are interested in the domain and those who aren't. Within those groups, the proportion of people who are also interested in each data science field were calculated. The proportions were compared and those values are shown on the heatmap. A positive number means that people interested in a specific domain showed more interest in that area of data science compared to those who were not interested in the domain.](images/Screenshot 2026-10-16 160132.png)
 
-Bar Graph of the Proportion of Respondents who had a interest in each of the areas of data science.
 
-![](images/clipboard-374677741.png)
+Some of the notable results included:
 
--   Those who selected biology didn't select predictive or statistical modeling as much.
+- Respondents who expressed interest in biology didn't express as much interest in statistical modeling when compared to respondents who were not interested in biology (45% interest vs 77% interest). 
 
--   Those who chose social/political science and health did seem to select predictive and statistical modeling at a higher rate than average.
+- Those who chose social/political science and health did seem to select predictive and statistical modeling at a higher rate than their counterparts who were not interested in those fields.
 
--   Those who chose biology, neuroscience and software development are slightly more interested in neural networks than average. It is possible that those fields are better-suited to utilize neural networks.
+- Those who chose biology, neuroscience, software development and technology are slightly more interested in neural networks than those who were not interested in those fields. An explanation for this is that those fields may be better-suited to utilize neural networks.
 
--   Those who chose biology and neuroscience also are interested in image analysis AND text analysis.
+- Those who chose biology and neuroscience also are interested in image analysis at a much higher rate than their counterparts not interested in biology or neuroscience. (~70% interest vs ~30-40% interest). A similar relation was seen for text analysis too.
 
 ### Question 2:
 
 Does previous classwork people have taken have a relation to preferences for certain areas of data science?
 
-```{r}
+```{r, echo = T}
 add_class_groups <- function(data){
   data %>% mutate(prereq_core = str_count(courses, "PSTAT 120|PSTAT 122|PSTAT 126"),
                   intro_ds = str_count(courses, "PSTAT 100"),
@@ -94,7 +96,7 @@ This code separates each of the major classes into different categories and coun
 
 This shows a heatmap of the proportion of the areas of data science within each of the categories of classes taken. We can see that interests are high across all areas of data science.
 
--   After Benjamini-Hochberg adjustment the smallest p-value is 0.17, showing that none of the differences between class-taken and non-taken groups remained statistically significant after the adjustment.
+- After Benjamini-Hochberg adjustment the smallest p-value is 0.17, showing that none of the differences between class-taken and non-taken groups remained statistically significant after the adjustment.
 
 ### Question 3:
 
