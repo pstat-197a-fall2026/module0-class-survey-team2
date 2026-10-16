@@ -1,0 +1,143 @@
+---
+title: "Daniel Question 3 Followup"
+output: html_document
+---
+
+```{r Reading Data}
+library(tidyverse)
+
+data <- read_csv("../data/cleaned_combined_data.csv")
+```
+
+```{r Cleaning data}
+course_data <- data %>%
+  dplyr::select(c(1:4, 24:41))
+
+course_data_long <- course_data %>%
+  pivot_longer(
+    cols = c(5:22),
+    names_to = "courses",
+    values_to = "taken"
+  )
+
+course_means <- course_data_long %>% 
+  group_by(courses, taken) %>% 
+  summarise(
+    mean_prog = mean(prog.comf),
+    mean_math = mean(math.comf),
+    mean_stat = mean(stat.comf),
+    count = n()
+  ) %>%
+  ungroup()
+
+course_means_grouped <- course_means %>%
+  pivot_wider(
+    id_cols = courses,                              
+    names_from = taken,                             
+    values_from = c(mean_prog, mean_math, mean_stat, count), 
+    names_glue = "{.value}_{ifelse(taken, 'taken', 'not_taken')}"
+  )
+```
+
+
+```{r Comparing mean comfort scores of those who have taken the class against those who have not, fig.show='hold', out.width="50%"}
+par(mfrow = c(2,2))
+#Programming Comparison
+ggplot(course_means_grouped) +
+  geom_segment(aes(x = courses, xend = courses, y = mean_prog_not_taken, yend = mean_prog_taken), color = "grey80") +
+  geom_point(aes(x = courses, y = mean_prog_not_taken, color = "Not Taken"), size = 3) +
+  geom_point(aes(x = courses, y = mean_prog_taken, color = "Taken"), size = 3) +
+  scale_color_manual(name = "Course Status", values = c("Taken" = "#33B31A80", "Not Taken" = "#B3331A80")) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Course Code", y = "Mean Programming Comfort Level")
+
+#Math Comparison
+ggplot(course_means_grouped) +
+  geom_segment(aes(x = courses, xend = courses, y = mean_math_not_taken, yend = mean_math_taken), color = "grey80") +
+  geom_point(aes(x = courses, y = mean_math_not_taken, color = "Not Taken"), size = 3) +
+  geom_point(aes(x = courses, y = mean_math_taken, color = "Taken"), size = 3) +
+  scale_color_manual(name = "Course Status", values = c("Taken" = "#33B31A80", "Not Taken" = "#B3331A80")) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Course Code", y = "Mean Mathematics Comfort Level")
+
+#Stats Comparison
+ggplot(course_means_grouped) +
+  geom_segment(aes(x = courses, xend = courses, y = mean_stat_not_taken, yend = mean_stat_taken), color = "grey80") +
+  geom_point(aes(x = courses, y = mean_stat_not_taken, color = "Not Taken"), size = 3) +
+  geom_point(aes(x = courses, y = mean_stat_taken, color = "Taken"), size = 3) +
+  scale_color_manual(name = "Course Status", values = c("Taken" = "#33B31A80", "Not Taken" = "#B3331A80")) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Course Code", y = "Mean Statistics Comfort Level")
+
+par(mfrow = c(1,1))
+```
+
+Before running any regression, we must analyze the correlation between classes to see if dimension reduction is necessary.
+
+```{r Plotting Correlation}
+library(corrplot) #For using corrplot
+
+class_cor <- cor(course_data %>% dplyr::select(-response_id, -prog.comf, -math.comf, -stat.comf)) 
+#%>% 
+ # corr.test(method = "pearson", adjust = "BY")
+corrplot(class_cor, method = "square", type = "full", order = "hclust", addCoef.col = "black", number.cex = 0.5)
+```
+There's no significant correlation besides cases of extremely small sample size, such as the one student taking both Linguistic classes or the one student who hasn't taken PSTAT 126, and a negative correlation between CS9 and CS16, which are mutually exclusive classes in terms of requirements for the PSTAT preparation for the major. I tried fitting all sorts of regressions to the data, but none were particularly effective, so I've decided to fit a random forest instead:
+
+```{r Fitting Random Forests}
+library(randomForest)
+library(ordinalForest)
+set.seed(10152026)
+
+course_data_numeric <- course_data %>%
+  mutate(across(where(is.logical), as.integer)) %>%
+  rename_with(~ gsub(" ", "_", .x), everything()) %>% 
+  mutate(prog.comf = factor(prog.comf, levels = 2:5, ordered = TRUE),
+         math.comf = factor(math.comf, levels = 2:5, ordered = TRUE),
+         stat.comf = factor(stat.comf, levels = 3:5, ordered = TRUE))
+
+prog_rf_data <- course_data_numeric %>%
+  dplyr::select(-response_id, -math.comf, -stat.comf)
+math_rf_data <- course_data_numeric %>%
+  dplyr::select(-response_id, -prog.comf, -stat.comf)
+stat_rf_data <- course_data_numeric %>%
+  dplyr::select(-response_id, -math.comf, -prog.comf)
+
+prog_rf <- randomForest(prog.comf ~ ., data = prog_rf_data, ntree = 500, mtry = 4, importance = TRUE)
+math_rf <- randomForest(math.comf ~ ., data = math_rf_data, ntree = 500, mtry = 4, importance = TRUE)
+stat_rf <- randomForest(stat.comf ~ ., data = stat_rf_data, ntree = 500, mtry = 4, importance = TRUE)
+```
+
+```{r Plotting the Random Forests, fig.show='hold', out.width="50%"}
+library(knitr)
+#Used DeepSeek to make the Kable
+get_imp <- function(model, label) {
+  as.data.frame(randomForest::importance(model)) %>%
+    tibble::rownames_to_column("class") %>%
+    transmute(class, importance = MeanDecreaseAccuracy, outcome = label)
+}
+
+imp_table <- bind_rows(
+  get_imp(prog_rf, "Programming"),
+  get_imp(math_rf, "Math"),
+  get_imp(stat_rf, "Statistics")
+) %>%
+  pivot_wider(names_from = outcome, values_from = importance) %>%
+  arrange(desc(Programming)) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 1)))
+
+knitr::kable(imp_table, 
+      caption = "Mean Decrease in Accuracy by class and comfort type",
+      col.names = c("Class", "Programming", "Math", "Statistics"))
+varImpPlot(prog_rf)
+varImpPlot(math_rf)
+varImpPlot(stat_rf)
+```
+
+
+
+
+
