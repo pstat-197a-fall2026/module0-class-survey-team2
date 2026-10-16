@@ -11,7 +11,7 @@ Cleaning Data
 ```{r}
 library(tidyverse)
 
-bg_clean <- read_csv("C:/Users/csola/OneDrive/Desktop/Pstat 197 (Capstone)/Class Survey/module0-class-survey/data/background-clean.csv")
+bg_clean <- read_csv("../data/background-clean.csv")
 
 # separate_rows() function worked better than pivot_longer()
 # here, sep = ", " separates by every comma and space

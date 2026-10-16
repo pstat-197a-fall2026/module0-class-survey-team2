@@ -10,12 +10,13 @@ title: "Question 1 Initial Analysis"
 - Respondents interested in biology seemed to express less interest in statistical modeling compared to those not interested in biology. (32 percentage points lower) I don't have an explanation for this.
 
 - The proportion of respondents interested in time series is 27 percentage points higher among those interested in environmental science compared to those that are not. (Maybe environmental science likes to look at long term trends which includes time series data)
+
 - The proportion of respondents interested in statistical modeling is 31 percentage points higher in respondents interested in social and political science compared to those who are not. (Potentially may be because social and political science may use a lot of models to predict behavior or stuff like elections). Similar behavior was seen for predictive modeling and time series.
 
 ```{r Load in Packages and Data}
 library(tidyverse)
 library(knitr)
-interest <- read_csv("data/interest-clean.csv")
+interest <- read_csv("../data/interest-clean.csv")
 ```
 Question of interest: Is there a relation between people's domains of interest (like biology, technology, AI, etc.) and the areas of data science that they prefer?
 
@@ -205,7 +206,7 @@ ggplot(prop_deviations, aes(x = Domain, y = area, fill = prop_dev)) +
 
 # 10/15 Work
 ```{r Heatmap of Differences in Selections between People who Chose a Field and People who Didn't}
-processed_data <- read_csv("data/cleaned_combined_data.csv") %>% select(-(prog.comf:stat.comf), -("PSTAT 115": other_dept))
+processed_data <- read_csv("../data/cleaned_combined_data.csv") %>% select(-(prog.comf:stat.comf), -("PSTAT 115": other_dept))
 
 processed_data_long <- processed_data %>% pivot_longer(cols = envi_sci:software_dev, names_to = "domain", values_to = "selected") %>% select(response_id, domain, selected, image_analysis:algorithms)
 
