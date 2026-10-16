@@ -2,7 +2,15 @@
 title: "Question 1 Initial Analysis"
 ---
 
-This work is currently in an RMD file so I can add notes along with the code. 
+# Notable Results:
+- When comparing the differences in people interested in software development and those that are not interested, the people interested in software development seemed to have a higher proportion of interest in software integration, image analysis, data engineering, and neural networks compared to those who did not express interest in software development (at least 20 percentage points more!)
+
+- The respondents interested in neuroscience were also more interested in image analysis compared to those not interested in neuroscience (38 percentage points more). Similar behavior was seen between those interested in health/biology compared to those who weren't interested. (Makes sense since imaging can be a significant part of those fields)
+
+- Respondents interested in biology seemed to express less interest in statistical modeling compared to those not interested in biology. (32 percentage points lower) I don't have an explanation for this.
+
+- The proportion of respondents interested in time series is 27 percentage points higher among those interested in environmental science compared to those that are not. (Maybe environmental science likes to look at long term trends which includes time series data)
+- The proportion of respondents interested in statistical modeling is 31 percentage points higher in respondents interested in social and political science compared to those who are not. (Potentially may be because social and political science may use a lot of models to predict behavior or stuff like elections). Similar behavior was seen for predictive modeling and time series.
 
 ```{r Load in Packages and Data}
 library(tidyverse)
@@ -135,7 +143,7 @@ colnames(long_prop_table) <- c("Domain", "Area", "Proportion")
 long_prop_table$Domain <-  factor(long_prop_table$Domain, levels = domains_of_interest %>% arrange(count) %>% pull(domain))
 long_prop_table$Area <- factor(long_prop_table$Area, levels = areas_of_interest %>% arrange(count) %>% pull(area))
 
-ggplot(long_prop_table, aes(x = Domain, y = Area, fill = Proportion)) + geom_tile() + geom_text(aes(label = round(Proportion, 2)), col = "white") + labs(title = "Proportion of Each Data Science Area Selected Stratified by Domain", subtitle = "Selection frequency increases left to right, bottom to top")
+area_int_strat_domain_plot <- ggplot(long_prop_table, aes(x = Domain, y = Area, fill = Proportion)) + geom_tile() + geom_text(aes(label = round(Proportion, 2)), col = "white") + labs(title = "Proportion of Interest within a Data Science Area Stratified by Domain", subtitle = "Selection frequency increases left to right, bottom to top") + theme(text = element_text(size = 9))
 ```
 If there is no relation between a person's domain of interest and the areas of data science they are interested in, we would expect each column to look about the same.
 
@@ -193,3 +201,76 @@ ggplot(prop_deviations, aes(x = Domain, y = area, fill = prop_dev)) +
 - Realizing that 1 person doesn't necessarily equal 1 response, counts become not very comparable between domains since the number of people who chose each domain isn't equal. Hence, proportions seem better.
 - Created a heatmap of the domain/area combinations.
 - Note that chi-square tests probably won't work since each respondent technically can fall into multiple categories (see how the sum of the counts table adds up to 1396, and not 49 for the 49 responses)
+
+
+# 10/15 Work
+```{r Heatmap of Differences in Selections between People who Chose a Field and People who Didn't}
+processed_data <- read_csv("data/cleaned_combined_data.csv") %>% select(-(prog.comf:stat.comf), -("PSTAT 115": other_dept))
+
+processed_data_long <- processed_data %>% pivot_longer(cols = envi_sci:software_dev, names_to = "domain", values_to = "selected") %>% select(response_id, domain, selected, image_analysis:algorithms)
+
+props_by_selected_domain <- processed_data_long %>% group_by(domain, selected) %>% summarize(count = n(), across("image_analysis":"algorithms", mean))
+props_by_selected_domain <- props_by_selected_domain %>% ungroup()
+prop_by_domain_long <- props_by_selected_domain %>% pivot_longer(cols = "image_analysis":"algorithms", names_to = "area", values_to = "proportion") %>% select(count, domain, selected, area, proportion) %>% arrange(domain)
+
+
+area_prop_diff_by_domain <- data.frame()
+for(i in 1:8){
+  data = props_by_selected_domain[c(2*i - 1, 2*i),]
+  data = data %>% transmute(across(image_analysis:algorithms, diff)) %>% slice(1)
+  area_prop_diff_by_domain <- rbind(area_prop_diff_by_domain, data)
+}
+area_prop_diff_by_domain <- area_prop_diff_by_domain %>% pivot_longer(cols = image_analysis:algorithms, names_to = "area", values_to = "prop_diff")
+area_prop_diff_by_domain$domain <- factor(area_prop_diff_by_domain$domain, levels = domains_of_interest %>% arrange(count) %>% pull(domain))
+area_prop_diff_by_domain$area <- factor(area_prop_diff_by_domain$area, levels = areas_of_interest %>% arrange(count) %>% pull(area))
+
+# Between people who expressed interest in a domain and those who didn't, each number shows the difference between the proportions in the two groups that also expressed interest in that data science area
+area_prop_diff_by_domain %>% arrange(prop_diff) %>% filter(!(domain %in% c("ecology", "tech"))) %>% head(10)
+
+```
+### Biggest differences in proportions for interest in an area based on whether they are interested in a domain or not.
+```{r Main Plot}
+prop_diff_plot <- ggplot(data = area_prop_diff_by_domain, mapping = aes(x = domain, y = area, fill = prop_diff)) + 
+  geom_tile() +
+  geom_text(aes(label = round(prop_diff, 2)), col = "white") +
+  labs(x = "Domain", y = "Area", title = "Comparing Proportion Differences of Area Preferences Based on Domain Preferences") +
+  theme(text = element_text(size = 9))
+
+prop_diff_plot
+```
+# Methodology
+Within each domain, I stratify the data into 2 groups: people who expressed interest in a domain and those who didn't express interest in the domain. Within those groups, I calculate the proportion of people who also expressed interest in pursuing a specific area of data science. The number in each cell represents the difference in the proportions between the people interested in the domain versus those who aren't interested. 
+
+For example: the 0.37 in the cell for `software_dev` and `data_engineering` means that the proportion of people interested in data engineering is 37 percentage points higher in the group interested in software development compared to the group not interested in software development 
+
+I am wary of making conclusions in ecology and tech since those had very unbalanced groups of people who are interested/not interested in those domains.
+
+# Notable Results:
+- When comparing the differences in people interested in software development and those that are not interested, the people interested in software development seemed to have a higher proportion of interest in software integration, image analysis, data engineering, and neural networks compared to those who did not express interest in software development (at least 20 percentage points more!)
+
+- The respondents interested in neuroscience were also more interested in image analysis compared to those not interested in neuroscience (38 percentage points more). Similar behavior was seen between those interested in health/biology compared to those who weren't interested. (Makes sense since imaging can be a significant part of those fields)
+
+- Respondents interested in biology seemed to express less interest in statistical modeling compared to those not interested in biology. (32 percentage points lower) I don't have an explanation for this.
+- The proportion of respondents interested in time series is 27 percentage points higher among those interested in environmental science compared to those that are not. (Maybe environmental science likes to look at long term trends which includes time series data)
+- The proportion of respondents interested in statistical modeling is 31 percentage points higher in respondents interested in social and political science compared to those who are not. (Potentially may be because social and political science may use a lot of models to predict behavior or stuff like elections). Similar behavior was seen for predictive modeling and time series.
+
+```{r}
+interesting_result_1 <- props_by_selected_domain %>% filter(domain == "software_dev") %>% select(domain, selected, software_integration, image_analysis, data_engineering, neural_networks) %>% pivot_longer(cols = software_integration:neural_networks, names_to = "area", values_to = "proportion") %>% pivot_wider(names_from = selected, values_from = proportion)
+
+interesting_result_2 <- props_by_selected_domain %>% filter(domain %in% c("neurosci", "biology", "health")) %>% select(domain, selected, image_analysis) %>% pivot_longer(cols = image_analysis, names_to = "area", values_to = "proportion") %>% pivot_wider(names_from = selected, values_from = proportion)
+
+interesting_result_3 <- props_by_selected_domain %>% filter(domain == "biology") %>% select(domain, selected, statistical_modeling) %>% pivot_longer(cols = statistical_modeling, names_to = "area", values_to = "proportion") %>% pivot_wider(names_from = selected, values_from = proportion)
+
+interesting_result_4 <- props_by_selected_domain %>% filter(domain == "envi_sci") %>% select(domain, selected, time_series) %>% pivot_longer(cols = time_series, names_to = "area", values_to = "proportion") %>% pivot_wider(names_from = selected, values_from = proportion)
+
+interesting_result_5 <- props_by_selected_domain %>% filter(domain == "soc_poli_sci") %>% select(domain, selected, statistical_modeling, predictive_modeling, time_series) %>% pivot_longer(cols = c("statistical_modeling", "predictive_modeling", "time_series"), names_to = "area", values_to = "proportion") %>% pivot_wider(names_from = selected, values_from = proportion)
+
+interesting_results <- rbind(interesting_result_1, interesting_result_2, interesting_result_3, interesting_result_4, interesting_result_5)
+colnames(interesting_results) <- c("Domain", "Data Science Area", "Not Interested Prop.", "Interested Prop.") 
+interesting_results %>% arrange("Domain")
+```
+
+```{r}
+save(interesting_results, prop_diff_plot, area_int_strat_domain_plot, file = "question_1_results.rda")
+```
+
