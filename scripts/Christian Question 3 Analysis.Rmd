@@ -62,33 +62,176 @@ plot_data <- course_means %>%
     )
 # plot_data
 
-ggplot(plot_data, aes(x = mean_comf, y = courses, color = subject)) +
+ggplot(plot_data, aes(x = mean_comf, y = reorder(courses, count), color = subject)) +
   geom_point(size = 3, position = position_dodge(width = 0.7)) +
-  labs(x = "Mean comfort", y = NULL, color = "Subject") 
+  labs(x = "Mean comfort", y = NULL, color = "Subject")
 # position = ... green is slightly lower, red is also slightly lower, and blue is slightly higher in their positions to avoid complete overlapping.
+# ordered by count so courses with the highest amount of students who took it is on top 
 ```
- 
- 
- # Below is a work in progress #
+ Interpretation of this plot:
+- Mean comfort of courses that few students took like CS 130, Geog 186, Ling 104 and Ling 110, don't really have any useful information. 
 
-lm():
+- Generally looking at the graph, it seems most students were not as comfortable with programming and are more comfortable with statistics and probability. But this was already shown in the tidyverse basics shown in section. 
+This is the table I was referencing.
+  variable   mean median   min   max
+  <chr>     <dbl>  <dbl> <dbl> <dbl>
+1 prog.comf  3.71      4     2     5
+2 math.comf  3.94      4     2     5
+3 stat.comf  4.14      4     3     5
+
+- What stood out to me about this plot is courses with the highest number of students who took the course rate their comfort in programming the least comfortable, math in the middle and statistics and probability is the skill they are most comfortable with. But this not true for PSTAT 134, PSTAT 174 and CS 16, PSTAT 127, PSTAT 115, and PSTAT 175 do not follow this order. 
+
+- What is most interesting to me is PSTAT 134 because all dots are between 4 and 4.5. 
+ 
+
+
+
+I decided to have one linear regression for each course that had a good balance because multiple linear regression would not work well because almost every student took the same courses. Focusing on one linear regression at a time better helps me understand my question by simply comparing those who did and did not take the course. The problem with linear regression is that it ignores all the other courses. But each course have different levels of programming, math and statistics and probability so I thought this was the best method.
+
+stat.comf Linear Regression
 ```{r}
-# to use lm() I need to create a variable for those who 
+# need to automate this:
+
+lm_courses <- function(x){
+  bg_clean_courses <- bg_clean %>%
+    mutate(took_course = str_detect(courses, x))
+  
+  course_lm <- lm(stat.comf ~ took_course, data = bg_clean_courses)
+  lm_summary <- summary(course_lm)
+  
+  data.frame(
+    course = x,
+    n_took = sum(bg_clean_courses$took_course),
+    n_not_took = sum(!bg_clean_courses$took_course),
+    coef = coef(course_lm)["took_courseTRUE"],
+    std_error = lm_summary$coefficients["took_courseTRUE", "Std. Error"],
+    r_squared = lm_summary$r.squared
+  )
+  }
+
+results_stat <- rbind(
+  lm_courses("PSTAT 131"),
+  lm_courses("PSTAT 122"),
+  lm_courses("CS 9"),
+  lm_courses("PSTAT 160"),
+  lm_courses("PSTAT 100"),
+  lm_courses("PSTAT 134"),
+  lm_courses("PSTAT 174"),
+  lm_courses("CS 16")
+  )
+
+rownames(results_stat) = NULL
+results_stat <- arrange(results_stat, desc(course))
+results_stat
 ```
+Interpretation:
+- Here is the list of courses I think are meaningful to analyze: "PSTAT 131", "PSTAT 122", "CS 9", "PSTAT 160", "PSTAT 100", "PSTAT 134", "PSTAT 174", "CS 16"
 
-Interpretation of this plot:
-# need to finish tomorrow morning
+- I fit a separate linear model for each course. The estimated difference in mean comfort between takers and non-takers was at most +.175 and at least -.29 on a 1-5 point scale. This basically shows the difference in mean statistics and probability comfort between takers and non-takers and these differences are very small.
+
+- The standard error was as large as or larger than the coefficient in 6 out of 8 courses, meaning these small differences shown are not very reliable. This was done by comparing the magnitude (abs(coef) vs SE)
+
+- R^2 never exceeded 0.032 (3.2%) and went as low as .004 (.4%). knowing whether a student took the course. This means over 96% of the differences between respondents come from something other than which course they took.
+
+- For some courses, one group is so small that it becomes hard to compare. Even a course like PSTAT 100 with almost even groups (28 vs 23), showed no meaningful difference, but we have to remember we are comparing stat.comf, this may be different for prog.comf or math.comf.
+
+- Overall for our question 3, We cannot say that taking any of these courses is related to higher or lower statistics and probability comfort. 
+
+
+prog.comf Linear Regression
+```{r}
+lm_courses <- function(x){
+  bg_clean_courses <- bg_clean %>%
+    mutate(took_course = str_detect(courses, x))
+  
+  course_lm <- lm(prog.comf ~ took_course, data = bg_clean_courses)
+  lm_summary <- summary(course_lm)
+  
+  data.frame(
+    course = x,
+    n_took = sum(bg_clean_courses$took_course),
+    n_not_took = sum(!bg_clean_courses$took_course),
+    coef = coef(course_lm)["took_courseTRUE"],
+    std_error = lm_summary$coefficients["took_courseTRUE", "Std. Error"],
+    r_squared = lm_summary$r.squared
+  )
+  }
+
+results_prog <- rbind(
+  lm_courses("PSTAT 131"),
+  lm_courses("PSTAT 122"),
+  lm_courses("CS 9"),
+  lm_courses("PSTAT 160"),
+  lm_courses("PSTAT 100"),
+  lm_courses("PSTAT 134"),
+  lm_courses("PSTAT 174"),
+  lm_courses("CS 16")
+  )
+
+rownames(results_prog) = NULL
+results_prog <- arrange(results_prog, desc(course))
+results_prog
+```
+Interpretation:
+- The estimated difference in mean programming comfort between takers and non-takers were from about -.18 to +.6 on a 1-5 point scale. 
+
+- In six of the eight courses, the standard error was as large as or larger than the estimated difference, meaning those small differences are not very reliable. The two exceptions are PSTAT 134 (coef .6 vs error .23) and PSTAT 131 (coef .56 vs error .35). This means that the coefficients of PSTAT 134 and PSTAT 131 are more reliable than the other courses. 
+
+- R^2 ranged from 0.0002 (.02%) to .123 (12.3%). For most courses the course explains almost none of the variation in programming comfort except for PSTAT 134, where the course accounts for about 12% of the variation.
+
+- Overall, most of these courses show no meaningful association with programming comfort. PSTAT 134 is the one case where takers report noticeably higher programming comfort, but we can see that only 13 students took this course so this information is not conclusive.
 
 
 
+math.comf Linear Regression
+```{r}
+lm_courses <- function(x){
+  bg_clean_courses <- bg_clean %>%
+    mutate(took_course = str_detect(courses, x))
+  
+  course_lm <- lm(math.comf ~ took_course, data = bg_clean_courses)
+  lm_summary <- summary(course_lm)
+  
+  data.frame(
+    course = x,
+    n_took = sum(bg_clean_courses$took_course),
+    n_not_took = sum(!bg_clean_courses$took_course),
+    coef = coef(course_lm)["took_courseTRUE"],
+    std_error = lm_summary$coefficients["took_courseTRUE", "Std. Error"],
+    r_squared = lm_summary$r.squared
+  )
+  }
+
+results_math <- rbind(
+  lm_courses("PSTAT 131"),
+  lm_courses("PSTAT 122"),
+  lm_courses("CS 9"),
+  lm_courses("PSTAT 160"),
+  lm_courses("PSTAT 100"),
+  lm_courses("PSTAT 134"),
+  lm_courses("PSTAT 174"),
+  lm_courses("CS 16")
+  )
+
+rownames(results_math) = NULL
+results <- arrange(results_math, desc(course))
+results_math
+```
+Interpretation:
+
+- The estimated difference in mean math comfort between takers and non-takers ranged from −.35 to +.38 on a 1-5 point scale. This is similar to stat.comf where none really stood out. 
+
+- In seven of the eight courses, the standard error was larger than the estimated difference, meaning the small differences shown are not very reliable. The one exception is PSTAT 160, where the estimated difference (|−.35| = .35) is slightly larger than its uncertainty (0.26). To clarify this means that PSTAT 160 students reported lower math comfort but the effect is very small on the 1-5 scale.
+
+- R^2 ranged from 0.0003 (0.03%) to 0.036 (3.6%). For every course, the course explains almost none of the variation in math comfort. The largest value, PSTAT 160 at 3.6%, is still very small.
+
+- Overall, because the courses have uneven comparisons (like PSTAT 160 with 34 students who took the course vs 17), the courses explains almost none of the variation in math comfort. The largest value, PSTAT 160 at 3.6%, is still too small.
 
 
 
+Overall Conclusion of Three Linear Models:
 
-
-
-
-
+- Overall, after comparing all three comfort outcomes across eight courses that were not too imbalanced ("PSTAT 131", "PSTAT 122", "CS 9", "PSTAT 160", "PSTAT 100", "PSTAT 134", "PSTAT 174", "CS 16"), programming, statistics and probability and math comfort showed no consistent meaningful association with any course. This was because every coefficient was small and unreliable and R^2 almost never exceeded 4%. There was one noticeable exception, PSTAT 134 takers reported mean programming comfort .6 points higher than non-takers with an R^2 of .122. In this sample, course completion is mainly unrelated to the comfort level you report. 
 
 
 
