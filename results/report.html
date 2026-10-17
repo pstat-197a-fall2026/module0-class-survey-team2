@@ -82,6 +82,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="report_files/libs/bootstrap/bootstrap-e491f8ff3e9ef7ba1930cda3f1cae37e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -211,9 +240,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><img src="images/clipboard-2553456797.png" class="img-fluid"></p>
 <p>Linear regression on math comfort level across “PSTAT 131”, “PSTAT 122”, “CS 9”, “PSTAT 160”, “PSTAT 100”, “PSTAT 134”, “PSTAT 174”, “CS 16”. The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and R^2 that were insignificant. Overall, we can not say that taking any of these courses is related to higher or lower statistics comfort.</p>
 <p><img src="images/clipboard-3186719292.png" class="img-fluid"></p>
-<p>Linear regression on statistics comfort level across “PSTAT 131”, “PSTAT 122”, “CS 9”, “PSTAT 160”, “PSTAT 100”, “PSTAT 134”, “PSTAT 174”, “CS 16”. The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and R^2 that were insignificant. Overall, we can not say that taking any of these courses is related to higher or lower statistics comfort.</p>
+<p>Linear regression on statistics comfort level across “PSTAT 131”, “PSTAT 122”, “CS 9”, “PSTAT 160”, “PSTAT 100”, “PSTAT 134”, “PSTAT 174”, “CS 16”. The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and <span class="math inline">\(R^2\)</span> that were insignificant. Overall, we cannot say that taking any of these courses is related to higher or lower statistics comfort.</p>
 <p><img src="images/clipboard-3901011762.png" class="img-fluid"></p>
-<p>Linear regression on programming comfort level “PSTAT 131”, “PSTAT 122”, “CS 9”, “PSTAT 160”, “PSTAT 100”, “PSTAT 134”, “PSTAT 174”, “CS 16”. The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and R^2 that were insignificant. Overall, we can not say that taking any of these courses is related to higher or lower programming comfort.</p>
+<p>Linear regression on programming comfort level “PSTAT 131”, “PSTAT 122”, “CS 9”, “PSTAT 160”, “PSTAT 100”, “PSTAT 134”, “PSTAT 174”, “CS 16”. The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and <span class="math inline">\(R^2\)</span> that were insignificant. Overall, we cannot say that taking any of these courses is related to higher or lower programming comfort.</p>
 </section>
 </section>
 

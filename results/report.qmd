@@ -41,7 +41,7 @@ Finally, project preferences questions included industry or research project pre
 > We sought to investigate the relationship between domains of interest, areas of data science preferences, courses, and self-assessed comfort level with technical skills among PSTAT197A students. Our analysis addressed three questions:
 >
 > 1.  Do domains of interest (biology, technology, AI, etc.) have any relations with preferences for certain areas of data science?
-> 2.  Does previous classwork  have a relation to preferences for certain areas of data science?
+> 2.  Does previous classwork have a relation to preferences for certain areas of data science?
 > 3.  Does corresponding classwork increase comfort with math/statistics/programming?
 
 ## Findings
@@ -54,25 +54,24 @@ interest <- read_csv("../data/interest-clean.csv")
 ```
 
 ### Question 1:
+
 Do domains of interest (biology, technology, AI, etc.) have any relations with preferences for certain areas of data science?
 
 ![Bar Graph of the Proportion of Respondents who had a preference for each of the domains](images/clipboard-3324050668.png){width="425"}
 
-![Table of the Proportion of Respondents who had a interest in each of the areas of data science](images/Screenshot 2026-10-16 161521.png){width="425"}
+![Table of the Proportion of Respondents who had a interest in each of the areas of data science](images/Screenshot%202026-10-16%20161521.png){width="425"}
 
-
-![The following heatmap splits each domain into 2 groups: those who are interested in the domain and those who aren't. Within those groups, the proportion of people who are also interested in each data science field were calculated. The proportions were compared and those values are shown on the heatmap. A positive number means that people interested in a specific domain showed more interest in that area of data science compared to those who were not interested in the domain.](images/Screenshot 2026-10-16 160132.png)
-
+![The following heatmap splits each domain into 2 groups: those who are interested in the domain and those who aren't. Within those groups, the proportion of people who are also interested in each data science field were calculated. The proportions were compared and those values are shown on the heatmap. A positive number means that people interested in a specific domain showed more interest in that area of data science compared to those who were not interested in the domain.](images/Screenshot%202026-10-16%20160132.png)
 
 Some of the notable results included:
 
-- Respondents who expressed interest in biology didn't express as much interest in statistical modeling when compared to respondents who were not interested in biology (45% interest vs 77% interest). 
+- Respondents who expressed interest in biology didn't express as much interest in statistical modeling when compared to respondents who were not interested in biology (45% interest vs 77% interest).
 
 - Those who chose social/political science and health did seem to select predictive and statistical modeling at a higher rate than their counterparts who were not interested in those fields.
 
 - Those who chose biology, neuroscience, software development and technology are slightly more interested in neural networks than those who were not interested in those fields. An explanation for this is that those fields may be better-suited to utilize neural networks.
 
-- Those who chose biology and neuroscience also are interested in image analysis at a much higher rate than their counterparts not interested in biology or neuroscience. (~70% interest vs ~30-40% interest). A similar relation was seen for text analysis too.
+- Those who chose biology and neuroscience also are interested in image analysis at a much higher rate than their counterparts not interested in biology or neuroscience. (\~70% interest vs \~30-40% interest). A similar relation was seen for text analysis too.
 
 ### Question 2:
 
@@ -118,8 +117,8 @@ Linear regression on math comfort level across "PSTAT 131", "PSTAT 122", "CS 9",
 
 ![](images/clipboard-3186719292.png)
 
-Linear regression on statistics comfort level across "PSTAT 131", "PSTAT 122", "CS 9", "PSTAT 160", "PSTAT 100", "PSTAT 134", "PSTAT 174", "CS 16". The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and R\^2 that were insignificant. Overall, we can not say that taking any of these courses is related to higher or lower statistics comfort.
+Linear regression on statistics comfort level across "PSTAT 131", "PSTAT 122", "CS 9", "PSTAT 160", "PSTAT 100", "PSTAT 134", "PSTAT 174", "CS 16". The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and $R^2$ that were insignificant. Overall, we cannot say that taking any of these courses is related to higher or lower statistics comfort.
 
 ![](images/clipboard-3901011762.png)
 
-Linear regression on programming comfort level "PSTAT 131", "PSTAT 122", "CS 9", "PSTAT 160", "PSTAT 100", "PSTAT 134", "PSTAT 174", "CS 16". The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and R\^2 that were insignificant. Overall, we can not say that taking any of these courses is related to higher or lower programming comfort.
+Linear regression on programming comfort level "PSTAT 131", "PSTAT 122", "CS 9", "PSTAT 160", "PSTAT 100", "PSTAT 134", "PSTAT 174", "CS 16". The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and $R^2$ that were insignificant. Overall, we cannot say that taking any of these courses is related to higher or lower programming comfort.
