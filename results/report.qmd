@@ -122,3 +122,9 @@ Linear regression on statistics comfort level across "PSTAT 131", "PSTAT 122", "
 ![](images/clipboard-3901011762.png)
 
 Linear regression on programming comfort level "PSTAT 131", "PSTAT 122", "CS 9", "PSTAT 160", "PSTAT 100", "PSTAT 134", "PSTAT 174", "CS 16". The estimated differences in mean comfort between class-takers and non-takers were very small and had standard errors and $R^2$ that were insignificant. Overall, we cannot say that taking any of these courses is related to higher or lower programming comfort.
+
+```{r, echo=FALSE, message=FALSE}
+load("../data/Q3 RF Table.rda")
+imp_kable
+```
+We fitted a random forest to the data analyzing for the importance of each parameter to the model, and while most ended up being fairly insignificant, it does show a correlation between students who had taken PSTAT 131 and PSTAT 134 and an increased reported comfort level in programming in particular, which is fairly consistent with the prior lollipop plot above. Additionally, this format punished classes which had few people taking or not taking it, such as nearly the entire cohort taking 126 and few single individuals like CS130. Overall, the strongest conclusion that can be drawn to answer the question about taken classes' effect on comfort is that advanced PSTAT classes, such as 131 and 134, are most linked to an increase in programming comfort within the cohort. 

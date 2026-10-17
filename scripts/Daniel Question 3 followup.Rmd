@@ -129,9 +129,10 @@ imp_table <- bind_rows(
   arrange(desc(Programming)) %>%
   mutate(across(where(is.numeric), ~ round(.x, 1)))
 
-knitr::kable(imp_table, 
-      caption = "Mean Decrease in Accuracy by class and comfort type",
+imp_kable <- knitr::kable(imp_table, 
+      caption = "Importance by Class and Comfort Type",
       col.names = c("Class", "Programming", "Math", "Statistics"))
+imp_kable
 varImpPlot(prog_rf)
 varImpPlot(math_rf)
 varImpPlot(stat_rf)
